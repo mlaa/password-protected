@@ -101,6 +101,10 @@ class Password_Protected {
 
 	}
 
+	public function get_multisite_option( $key, $default = false ) {
+		return ( is_multisite() ) ? get_site_option( $key, $default ) : get_option( $key, $default );
+	}
+
 	/**
 	 * Is Active?
 	 *
@@ -115,7 +119,7 @@ class Password_Protected {
 			return false;
 		}
 
-		if ( (bool) get_option( 'password_protected_status' ) ) {
+		if ( (bool) $this->get_multisite_option( 'password_protected_status' ) ) {
 			$is_active = true;
 		} else {
 			$is_active = false;
@@ -167,7 +171,7 @@ class Password_Protected {
 	 */
 	public function allow_feeds( $bool ) {
 
-		if ( is_feed() && (bool) get_option( 'password_protected_feeds' ) ) {
+		if ( is_feed() && (bool) $this->get_multisite_option( 'password_protected_feeds' ) ) {
 			return 0;
 		}
 
@@ -183,7 +187,7 @@ class Password_Protected {
 	 */
 	public function allow_administrators( $bool ) {
 
-		if ( ! is_admin() && current_user_can( 'manage_options' ) && (bool) get_option( 'password_protected_administrators' ) ) {
+		if ( ! is_admin() && current_user_can( 'manage_options' ) && (bool) $this->admin->password_protected_get_option( 'password_protected_administrators' ) ) {
 			return 0;
 		}
 
@@ -199,7 +203,7 @@ class Password_Protected {
 	 */
 	public function allow_users( $bool ) {
 
-		if ( ! is_admin() && is_user_logged_in() && (bool) get_option( 'password_protected_users' ) ) {
+		if ( ! is_admin() && is_user_logged_in() && (bool) $this->admin->password_protected_get_option( 'password_protected_users' ) ) {
 			return 0;
 		}
 
@@ -234,7 +238,7 @@ class Password_Protected {
 	 */
 	public function get_allowed_ip_addresses() {
 
-		return explode( "\n", get_option( 'password_protected_allowed_ip_addresses' ) );
+		return explode( PHP_EOL, $this->get_multisite_option( 'password_protected_allowed_ip_addresses' ) );
 
 	}
 
@@ -279,7 +283,7 @@ class Password_Protected {
 
 		if ( $this->is_active() && isset( $_REQUEST['password_protected_pwd'] ) ) {
 			$password_protected_pwd = $_REQUEST['password_protected_pwd'];
-			$pwd = get_option( 'password_protected_password' );
+			$pwd = $this->get_multisite_option( 'password_protected_password' );
 
 			// If correct password...
 			if ( ( $this->encrypt_password( $password_protected_pwd ) == $pwd && $pwd != '' ) || apply_filters( 'password_protected_process_login', false, $password_protected_pwd ) ) {
@@ -468,7 +472,7 @@ class Password_Protected {
 	 */
 	public function get_hashed_password() {
 
-		return md5( get_option( 'password_protected_password' ) . wp_salt() );
+		return md5( $this->get_multisite_option( 'password_protected_password' ) . wp_salt() );
 
 	}
 
@@ -620,18 +624,18 @@ class Password_Protected {
 	 */
 	public function install() {
 
-		$old_version = get_option( 'password_protected_version' );
+		$old_version = $this->admin->password_protected_get_option( 'password_protected_version' );
 
 		// 1.1 - Upgrade to MD5
 		if ( empty( $old_version ) || version_compare( '1.1', $old_version ) ) {
-			$pwd = get_option( 'password_protected_password' );
+			$pwd = $this->admin->password_protected_get_option( 'password_protected_password' );
 			if ( ! empty( $pwd ) ) {
 				$new_pwd = $this->encrypt_password( $pwd );
-				update_option( 'password_protected_password', $new_pwd );
+				$this->admin->password_protected_update_option( 'password_protected_password', $new_pwd );
 			} 
 		}
 
-		update_option( 'password_protected_version', $this->version );
+		$this->admin->password_protected_update_option( 'password_protected_version', $this->version );
 
 	}
 
