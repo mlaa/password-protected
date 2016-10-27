@@ -1,9 +1,11 @@
 <?php
+require_once( dirname( plugin_dir_path( __FILE__ ) ) . '/helper.php' );
 
 class Password_Protected_Admin {
 
 	var $settings_page_id;
 	var $options_group = 'password-protected';
+	public $helper;
 
 	/**
 	 * Constructor
@@ -11,10 +13,11 @@ class Password_Protected_Admin {
 	public function __construct() {
 
 		global $wp_version;
+		$this->helper = new Helper();
 
 		add_action( 'admin_init', array( $this, 'password_protected_settings' ), 5 );
 
-		if( is_multisite() ) {
+		if( is_multisite() && $this->helper->is_network_active() ) {
 			add_action( 'network_admin_menu', array( $this, 'network_admin_menu' ) );
 		} else {
 			add_action( 'admin_menu', array( $this, 'admin_menu' ) );
@@ -26,30 +29,6 @@ class Password_Protected_Admin {
 		add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 10, 4 );
 		add_filter( 'plugin_action_links_password-protected/password-protected.php', array( $this, 'plugin_action_links' ) );
 
-	}
-
-	/**
-	 * Gets data from the options table from the key specified
-	 * and checks if user is using multisite
-	 * 
-	 * @param  string  $key     name of option to get
-	 * @param  boolean $default value to return if option does not exist
-	 * @return mixed            value of option or false if option does not exist
-	 */
-	function password_protected_get_option( $key, $default = false ) {
-		return ( is_multisite() ) ? get_site_option( $key, $default ) : get_option( $key, $default );
-	}
-
-	/**
-	 * Updates the options table with the the key/value pairs 
-	 * and checks if the user has multisite enabled
-	 * 
-	 * @param  string $key   name of key to store
-	 * @param  string $value value content to store
-	 * @return boolean		 true if updated, false if it did not   
-	 */
-	function password_protected_update_option( $key, $value ) {
-		return ( is_multisite() ) ? update_site_option( $key, $value ) : update_option( $key, $value );
 	}
 
 	/**
@@ -82,18 +61,18 @@ class Password_Protected_Admin {
 
 			if( isset( $_POST['submit'] ) ) {
 
-				$this->password_protected_update_option( 'password_protected_status', $_POST['password_protected_status' ] );
-				$this->password_protected_update_option( 'password_protected_administrators', $_POST['password_protected_administrators'] );
-				$this->password_protected_update_option( 'password_protected_users', $_POST[ 'password_protected_users' ] );
-				$this->password_protected_update_option( 'password_protected_feeds', $_POST[ 'password_protected_feeds' ] );
-				$this->password_protected_update_option( 'password_protected_allowed_ip_addresses', $this->sanitize_ip_addresses( $_POST['password_protected_allowed_ip_addresses'] ) );
+				$this->helper->password_protected_update_option( 'password_protected_status', $_POST['password_protected_status' ] );
+				$this->helper->password_protected_update_option( 'password_protected_administrators', $_POST['password_protected_administrators'] );
+				$this->helper->password_protected_update_option( 'password_protected_users', $_POST[ 'password_protected_users' ] );
+				$this->helper->password_protected_update_option( 'password_protected_feeds', $_POST[ 'password_protected_feeds' ] );
+				$this->helper->password_protected_update_option( 'password_protected_allowed_ip_addresses', $this->sanitize_ip_addresses( $_POST['password_protected_allowed_ip_addresses'] ) );
 
-				$old_pwd = $this->password_protected_get_option( 'password_protected_password' );
+				$old_pwd = $this->helper->password_protected_get_option( 'password_protected_password' );
 				$new_pwd = $this->sanitize_password_protected_password( $_POST['password_protected_password'] );
 
 				if( $new_pwd !== $old_pwd ) {
 
-					$this->password_protected_update_option( 'password_protected_password', $Password_Protected->encrypt_password( $new_pwd ) );
+					$this->helper->password_protected_update_option( 'password_protected_password', $Password_Protected->encrypt_password( $new_pwd ) );
 
 				}
 			
@@ -233,7 +212,7 @@ class Password_Protected_Admin {
 	 */
 	public function sanitize_password_protected_password( $val ) {
 
-		$old_val = $this->password_protected_get_option( 'password_protected_password' );
+		$old_val = $this->helper->password_protected_get_option( 'password_protected_password' );
 
 		if ( is_array( $val ) ) {
 			if ( empty( $val['new'] ) ) {
@@ -248,7 +227,7 @@ class Password_Protected_Admin {
 				add_settings_error( 'password_protected_password', 'password_protected_password', __( 'New password saved.', 'password-protected' ), 'updated' );
 				return $val['new'];
 			}
-			return $this->password_protected_get_option( 'password_protected_password' );
+			return $this->helper->password_protected_get_option( 'password_protected_password' );
 		}
 
 		return $val;
@@ -303,7 +282,7 @@ class Password_Protected_Admin {
 	 */
 	public function password_protected_status_field() {
 
-		echo '<label><input name="password_protected_status" id="password_protected_status" type="checkbox" value="1" ' . checked( 1, $this->password_protected_get_option( 'password_protected_status' ), false ) . ' /> ' . __( 'Enabled', 'password-protected' ) . '</label>';
+		echo '<label><input name="password_protected_status" id="password_protected_status" type="checkbox" value="1" ' . checked( 1, $this->helper->password_protected_get_option( 'password_protected_status' ), false ) . ' /> ' . __( 'Enabled', 'password-protected' ) . '</label>';
 
 	}
 
@@ -312,9 +291,9 @@ class Password_Protected_Admin {
 	 */
 	public function password_protected_permissions_field() {
 
-		echo '<label><input name="password_protected_administrators" id="password_protected_administrators" type="checkbox" value="1" ' . checked( 1, $this->password_protected_get_option( 'password_protected_administrators' ), false ) . ' /> ' . __( 'Allow Administrators', 'password-protected' ) . '</label>';
-		echo '<label><input name="password_protected_users" id="password_protected_users" type="checkbox" value="1" ' . checked( 1, $this->password_protected_get_option( 'password_protected_users' ), false ) . ' style="margin-left: 20px;" /> ' . __( 'Allow Logged In Users', 'password-protected' ) . '</label>';
-		echo '<label><input name="password_protected_feeds" id="password_protected_feeds" type="checkbox" value="1" ' . checked( 1, $this->password_protected_get_option( 'password_protected_feeds' ), false ) . ' style="margin-left: 20px;" /> ' . __( 'Allow RSS Feeds', 'password-protected' ) . '</label>';
+		echo '<label><input name="password_protected_administrators" id="password_protected_administrators" type="checkbox" value="1" ' . checked( 1, $this->helper->password_protected_get_option( 'password_protected_administrators' ), false ) . ' /> ' . __( 'Allow Administrators', 'password-protected' ) . '</label>';
+		echo '<label><input name="password_protected_users" id="password_protected_users" type="checkbox" value="1" ' . checked( 1, $this->helper->password_protected_get_option( 'password_protected_users' ), false ) . ' style="margin-left: 20px;" /> ' . __( 'Allow Logged In Users', 'password-protected' ) . '</label>';
+		echo '<label><input name="password_protected_feeds" id="password_protected_feeds" type="checkbox" value="1" ' . checked( 1, $this->helper->password_protected_get_option( 'password_protected_feeds' ), false ) . ' style="margin-left: 20px;" /> ' . __( 'Allow RSS Feeds', 'password-protected' ) . '</label>';
 
 	}
 
@@ -333,7 +312,7 @@ class Password_Protected_Admin {
 	 */
 	public function password_protected_allowed_ip_addresses_field() {
 
-		echo '<textarea name="password_protected_allowed_ip_addresses" id="password_protected_allowed_ip_addresses" rows="3" class="large-text" />' . $this->password_protected_get_option( 'password_protected_allowed_ip_addresses' ) . '</textarea>';
+		echo '<textarea name="password_protected_allowed_ip_addresses" id="password_protected_allowed_ip_addresses" rows="3" class="large-text" />' . $this->helper->password_protected_get_option( 'password_protected_allowed_ip_addresses' ) . '</textarea>';
 		echo '<p class="description">' . esc_html__( 'Enter one IP address per line.', 'password-protected' ) . ' ' . esc_html( sprintf( __( 'Your IP is address %s.', 'password-protected' ), $_SERVER['REMOTE_ADDR'] ) ) . '</p>';
 
 	}
@@ -417,19 +396,19 @@ class Password_Protected_Admin {
 
 		// Settings
 		if ( $this->is_current_screen( $this->plugin_screen_ids() ) ) {
-			$status = $this->password_protected_get_option( 'password_protected_status' );
-			$pwd = $this->password_protected_get_option( 'password_protected_password' );
+			$status = $this->helper->password_protected_get_option( 'password_protected_status' );
+			$pwd = $this->helper->password_protected_get_option( 'password_protected_password' );
 
 			if ( (bool) $status && empty( $pwd ) ) {
 				echo $this->admin_error_display( __( 'You have enabled password protection but not yet set a password. Please set one below.', 'password-protected' ) );
 			}
 
-			if ( current_user_can( 'manage_options' ) && ( (bool) $this->password_protected_get_option( 'password_protected_administrators' ) || (bool) $this->password_protected_get_option( 'password_protected_users' ) ) ) {
-				if ( (bool) $this->password_protected_get_option( 'password_protected_administrators' ) && (bool) $this->password_protected_get_option( 'password_protected_users' ) ) {
+			if ( current_user_can( 'manage_options' ) && ( (bool) $this->helper->password_protected_get_option( 'password_protected_administrators' ) || (bool) $this->helper->password_protected_get_option( 'password_protected_users' ) ) ) {
+				if ( (bool) $this->helper->password_protected_get_option( 'password_protected_administrators' ) && (bool) $this->helper->password_protected_get_option( 'password_protected_users' ) ) {
 					echo $this->admin_error_display( __( 'You have enabled password protection and allowed administrators and logged in users - other users will still need to enter a password to view the site.', 'password-protected' ) );
-				} elseif ( (bool) $this->password_protected_get_option( 'password_protected_administrators' ) ) {
+				} elseif ( (bool) $this->helper->password_protected_get_option( 'password_protected_administrators' ) ) {
 					echo $this->admin_error_display( __( 'You have enabled password protection and allowed administrators - other users will still need to enter a password to view the site.', 'password-protected' ) );
-				} elseif ( (bool) $this->password_protected_get_option( 'password_protected_users' ) ) {
+				} elseif ( (bool) $this->helper->password_protected_get_option( 'password_protected_users' ) ) {
 					echo $this->admin_error_display( __( 'You have enabled password protection and allowed logged in users - other users will still need to enter a password to view the site.', 'password-protected' ) );
 				}
 			}
