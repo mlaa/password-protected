@@ -69,13 +69,7 @@ class Password_Protected {
 		add_action( 'wp', array( $this, 'disable_feeds' ) );
 		add_action( 'template_redirect', array( $this, 'maybe_show_login' ), -1 );
 
-		if( is_multisite() && $this->helper->is_network_active() ) { 
-
-			add_action( 'init', array( $this, 'allow_feeds_multisite' ) );
-			add_action( 'init', array( $this, 'allow_administrators_multisite' ) );
-			add_action( 'init', array( $this, 'allow_users_multisite' ) );
-
-		} else {
+		if( !is_multisite() ) {
 
 			add_filter( 'pre_option_password_protected_status', array( $this, 'allow_feeds' ) );
 			add_filter( 'pre_option_password_protected_status', array( $this, 'allow_administrators' ) );
@@ -171,55 +165,6 @@ class Password_Protected {
 	public function disable_feed() {
 
 		wp_die( sprintf( __( 'Feeds are not available for this site. Please visit the <a href="%s">website</a>.', 'password-protected' ), get_bloginfo( 'url' ) ) );
-
-	}
-
-	public function allow_feeds_multisite() {
-
-		if( $this->helper->password_protected_get_option('password_protected_status') ) {
-		
-			if ( is_feed() && (bool) $this->helper->password_protected_get_option( 'password_protected_feeds' ) ) {
-				$this->helper->password_protected_update_option( 'password_protected_status', '0' );
-			}
-		
-		} else {
-
-			return $this->helper->password_protected_get_option( 'password_protected_status', false );
-		
-		}
-
-	}
-
-	public function allow_administrators_multisite() {
-
-		if( $this->helper->password_protected_get_option('password_protected_status') ) {
-		
-			if ( ! is_admin() && current_user_can( 'manage_network_options' ) && (bool) $this->helper->password_protected_get_option( 'password_protected_administrators' ) ) {
-				$this->helper->password_protected_update_option( 'password_protected_status', '0' );
-			}
-		
-		} else {
-
-			return $this->helper->password_protected_get_option( 'password_protected_status', false );
-		
-		}
-
-
-	}
-
-	public function allow_users_multisite() {
-
-		if( $this->helper->password_protected_get_option('password_protected_status') ) {
-		
-			if ( ! is_admin() && is_user_logged_in() && (bool) $this->helper->password_protected_get_option( 'password_protected_users' ) ) {
-				$this->helper->password_protected_update_option( 'password_protected_status', '0' );
-			}
-		
-		} else {
-
-			return $this->helper->password_protected_get_option( 'password_protected_status', false );
-		
-		}
 
 	}
 
@@ -642,7 +587,7 @@ class Password_Protected {
 	 * @param  boolean  $remember  Remember logged in.
 	 * @param  string   $secure    Secure cookie.
 	 */
-	public function set_auth_cookie( $remember = false, $secure = '') {
+	public function set_auth_cookie($remember = false, $secure = '') {
 
 		if ( $remember ) {
 			$expiration = $expire = current_time( 'timestamp' ) + apply_filters( 'password_protected_auth_cookie_expiration', 1209600, $remember );
