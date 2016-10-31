@@ -66,7 +66,10 @@ class Password_Protected {
 		add_action( 'init', array( $this, 'disable_caching' ), 1 );
 		add_action( 'init', array( $this, 'maybe_process_logout' ), 1 );
 		add_action( 'init', array( $this, 'maybe_process_login' ), 1 );
-		add_action( 'wp', array( $this, 'disable_feeds' ) );
+
+		if( $this->helper->password_protected_get_option( 'password_protected_feeds' ) !== '1' )
+			add_action( 'wp', array( $this, 'disable_feeds' ) );
+
 		add_action( 'template_redirect', array( $this, 'maybe_show_login' ), -1 );
 
 		if( !is_multisite() ) {
@@ -106,7 +109,7 @@ class Password_Protected {
 
 		if ( $this->is_active() && ! defined( 'DONOTCACHEPAGE' ) ) {
 			define( 'DONOTCACHEPAGE', true );
-		}	
+		}
 
 	}
 
