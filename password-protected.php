@@ -343,6 +343,11 @@ class Password_Protected {
 			return;
 		}
 
+		//don't show if its an rss feed
+		if( is_feed() ) {
+			return;
+		}
+
 		// Show login form
 		if ( isset( $_REQUEST['password-protected'] ) && 'login' == $_REQUEST['password-protected'] ) {
 
