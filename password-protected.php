@@ -643,7 +643,7 @@ class Password_Protected {
 			$pwd = $this->helper->password_protected_get_option( 'password_protected_password' );
 			if ( ! empty( $pwd ) ) {
 				$new_pwd = $this->encrypt_password( $pwd );
-				$this->admin->password_protected_update_option( 'password_protected_password', $new_pwd );
+				$this->helper->password_protected_update_option( 'password_protected_password', $new_pwd );
 			} 
 		}
 
