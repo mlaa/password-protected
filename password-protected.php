@@ -344,7 +344,7 @@ class Password_Protected {
 		}
 
 		//don't show if its an rss feed
-		if( is_feed() ) {
+		if( is_feed() && $this->helper->password_protected_get_option( 'password_protected_feeds' ) == '1' ) {
 			return;
 		}
 
