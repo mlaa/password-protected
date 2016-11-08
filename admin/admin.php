@@ -66,6 +66,7 @@ class Password_Protected_Admin {
 				$this->helper->password_protected_update_option( 'password_protected_users', $_POST[ 'password_protected_users' ] );
 				$this->helper->password_protected_update_option( 'password_protected_feeds', $_POST[ 'password_protected_feeds' ] );
 				$this->helper->password_protected_update_option( 'password_protected_allowed_ip_addresses', $this->sanitize_ip_addresses( $_POST['password_protected_allowed_ip_addresses'] ) );
+				$this->helper->password_protected_update_option( 'password_protected_unprotected_pages', $this->sanitize_pages( $_POST['password_protected_unprotected_pages'] ) );
 
 				$old_pwd = $this->helper->password_protected_get_option( 'password_protected_password' );
 				$new_pwd = $this->sanitize_password_protected_password( $_POST['password_protected_password'] );
@@ -195,12 +196,21 @@ class Password_Protected_Admin {
 			'password_protected'
 		);
 
+		add_settings_field(
+			'password_protected_unprotected_pages',
+			__( 'Upprotected Pages', 'password-protected' ),
+			array( $this, 'password_protected_unprotected_pages_field' ),
+			$this->options_group,
+			'password_protected'
+		);
+
 		register_setting( $this->options_group, 'password_protected_status', 'intval' );
 		register_setting( $this->options_group, 'password_protected_feeds', 'intval' );
 		register_setting( $this->options_group, 'password_protected_administrators', 'intval' );
 		register_setting( $this->options_group, 'password_protected_users', 'intval' );
 		register_setting( $this->options_group, 'password_protected_password', array( $this, 'sanitize_password_protected_password' ) );
 		register_setting( $this->options_group, 'password_protected_allowed_ip_addresses', array( $this, 'sanitize_ip_addresses' ) );
+		register_setting( $this->options_group, 'password_protected_unprotected_pages', array( $this, 'sanitize_pages' ) );
 
 	}
 
@@ -268,6 +278,25 @@ class Password_Protected_Admin {
 	}
 
 	/**
+	 * Sanitize Pages
+	 *
+	 * @param   string  $val  List of page IDs, one per line
+	 * @return  string        Sanitized list of pages.
+	 */
+	public function sanitize_pages( $val ) {
+
+		$page_ids = explode( "\n", $val );
+		$page_ids = array_map( 'sanitize_text_field', $page_ids );
+		$page_ids = array_map( 'trim', $page_ids );
+		$page_ids = array_filter( $page_ids );
+
+		$val = implode( "\n", $page_ids );
+
+		return $val;
+
+	}
+
+	/**
 	 * Password Protected Section
 	 */
 	public function password_protected_settings_section() {
@@ -316,6 +345,17 @@ class Password_Protected_Admin {
 		echo '<p class="description">' . esc_html__( 'Enter one IP address per line.', 'password-protected' ) . ' ' . esc_html( sprintf( __( 'Your IP is address %s.', 'password-protected' ), $_SERVER['REMOTE_ADDR'] ) ) . '</p>';
 
 	}
+
+	/**
+	 * Unprotected Pages Field
+	 */
+	public function password_protected_unprotected_pages_field() {
+
+		echo '<textarea name="password_protected_unprotected_pages" id="password_protected_unprotected_pages" rows="3" class="large-text" />' . $this->helper->password_protected_get_option( 'password_protected_unprotected_pages' ) . '</textarea>';
+		echo '<p class="description">' . esc_html__( 'Enter one Page/Post ID per line.', 'password-protected' ) . '</p>';
+
+	}
+
 
 	/**
 	 * Pre-update 'password_protected_password' Option
